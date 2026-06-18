@@ -1,0 +1,32 @@
+# --- Secrets / environment ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# --- AI tooling / internal docs (never commit these) ---
+.claude/
+CLAUDE.md
+memory/
+*.session.md
+
+# --- Backend (Gradle / Java) ---
+backend/build/
+backend/.gradle/
+backend/out/
+*.class
+
+# --- Frontend (Next.js / Node) ---
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+npm-debug.log*
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+*.iml
+.DS_Store

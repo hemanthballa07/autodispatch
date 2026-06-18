@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: autodispatch
+
+  # Local-dev defaults match docker-compose.yml at the repo root.
+  # Real environments override via environment variables — never commit credentials.
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:autodispatch}
+    username: ${POSTGRES_USER:autodispatch}
+    password: ${POSTGRES_PASSWORD:autodispatch}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
+  mvc:
+    problemdetails:
+      enabled: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+# WhatsApp Cloud API adapter. All secrets come from the environment — never
+# hardcode values here. Default mode STUB sends nothing externally.
+whatsapp:
+  mode: ${WHATSAPP_MODE:STUB}
+  api-base-url: ${WHATSAPP_API_BASE_URL:https://graph.facebook.com/v21.0}
+  access-token: ${WHATSAPP_ACCESS_TOKEN:}
+  app-secret: ${WHATSAPP_APP_SECRET:}
+  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
+  verify-token: ${WHATSAPP_VERIFY_TOKEN:}
+  template-fallback-enabled: ${WHATSAPP_TEMPLATE_FALLBACK_ENABLED:false}
+
+notification:
+  webhook:
+    async: true
+
+autodispatch:
+  jwt:
+    # Local-dev default only — set JWT_SECRET in any real environment.
+    secret: ${JWT_SECRET:local-dev-only-not-a-secret}
+  admin:
+    api-key: ${ADMIN_API_KEY:local-admin-key-not-for-production}
