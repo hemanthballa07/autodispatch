@@ -2,6 +2,19 @@
 
 ## Current phase
 
+**Admin Dashboard UI complete (Phase 7). Campus operators can log in via `/admin`, view live system stats, manage drivers (register/verify/suspend/unsuspend), and browse rides (filter by status/date, paginate). Auth guard uses sessionStorage; sign-out clears the key.**
+
+Phase 7 added:
+- `frontend/lib/admin-api.ts`: typed HTTP client for all admin endpoints; `adminRequest` places `X-Admin-Key` after header spread; 401 without `keyOverride` clears sessionStorage + redirects.
+- `components/admin/StatsCard.tsx`: presentational stat tile.
+- `components/admin/AdminLoginForm.tsx`: validates key via `getStats(keyOverride)` before writing sessionStorage; no router dependency.
+- `app/admin/login/page.tsx`: unguarded login page (avoids redirect loop).
+- `app/admin/(protected)/layout.tsx`: auth guard using `useState(false)` + `useEffect([router])` pattern; `router.replace` (not push) so protected URL is not in back-history; nav with sign-out.
+- `app/admin/(protected)/page.tsx` → `AdminDashboard.tsx`: live stats (activeRides, completedToday, availableDrivers).
+- `app/admin/(protected)/drivers/page.tsx` → `AdminDriversView.tsx`: driver table with per-row verify/suspend/unsuspend actions + inline error display; register form with 409/400 error handling.
+- `app/admin/(protected)/rides/page.tsx` → `AdminRidesView.tsx`: rides table with status + date filters (page resets on filter change), pagination (Next disabled when < 20 rows), null-fare guard.
+- 26 new Vitest component tests → **40 total tests green** (14 existing + 26 new).
+
 **Admin module complete. Campus operator can register, verify, suspend, and unsuspend drivers; query rides by status/date; and view system stats. All behind a static API key.**
 
 Phase 6 added:

@@ -5,6 +5,31 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-19 — Admin Dashboard UI (Phase 7)
+
+- `frontend/lib/admin-api.ts`: typed HTTP client wrapping all `/api/admin/v1/**`
+  endpoints (`getStats`, `listDrivers`, `registerDriver`, `verifyDriver`,
+  `suspendDriver`, `unsuspendDriver`, `listRides`). `adminRequest` injects
+  `X-Admin-Key` after the header spread; 401 without `keyOverride` clears
+  `sessionStorage` and redirects to `/admin/login`.
+- `app/admin/login/page.tsx` (unguarded) + `AdminLoginForm` component: verifies
+  key via `getStats(keyOverride)` before committing to sessionStorage; 401 →
+  "Invalid key"; no sessionStorage write on failure.
+- `app/admin/(protected)/layout.tsx`: auth guard using `useState(false)` +
+  `useEffect([router])` (no SSR sessionStorage read, no hydration mismatch).
+  `router.replace` ensures the protected URL is not in back-history post sign-out.
+  Navigation: Dashboard / Drivers / Rides / Sign out.
+- `AdminDashboard`: fetches `getStats()` on mount; renders 3× `StatsCard`
+  (Active Rides, Completed Today, Available Drivers).
+- `AdminDriversView`: driver table (Name, Vehicle, State, Verified, Suspended,
+  Actions); per-row Verify / Suspend / Unsuspend buttons with inline error on
+  422; register form with 409 → "WhatsApp ID already registered" / 400 → detail.
+- `AdminRidesView`: rides table with status dropdown + date input filters;
+  page resets to 0 on any filter change; pagination Next disabled at < 20 rows;
+  `fareAmount` null → renders "—".
+- 26 new Vitest component tests (LoginForm 5, Layout 3, Dashboard 2, Drivers 6,
+  Rides 9) → **40 frontend tests green** (14 existing + 26 new).
+
 ### Added — 2026-06-18 — Admin module (Phase 6)
 
 - Flyway `V6__admin_module.sql`: `drivers.suspended` column (default FALSE);
