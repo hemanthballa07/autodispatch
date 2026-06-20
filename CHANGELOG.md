@@ -5,6 +5,37 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-20 — Production Hardening + Deployment (Phase 8)
+
+- `backend/build.gradle`: added `logstash-logback-encoder:8.0`,
+  `micrometer-registry-prometheus`, `micrometer-tracing-bridge-otel`.
+- `backend/src/main/resources/logback-spring.xml`: JSON encoder
+  (`LogstashEncoder`) for `prod` profile; colored console for `!prod`.
+- `backend/src/main/resources/application.yml`: extended management section —
+  exposes `prometheus`, enables Actuator health probes
+  (`/actuator/health/liveness`, `/actuator/health/readiness`), `show-details:
+  always`. Added `logging.pattern.correlation` for MDC trace/span IDs in dev
+  console output.
+- `backend/src/main/resources/application-prod.yml`: production Spring profile
+  — `POSTGRES_*` / `REDIS_*` env vars (no defaults, Railway must supply them),
+  `logging.level root=INFO`.
+- `Dockerfile` (repo root): multi-stage build — `eclipse-temurin:21-jdk-alpine`
+  build stage with Gradle dependency-cache layer, `eclipse-temurin:21-jre-alpine`
+  runtime stage; `HEALTHCHECK --start-period=45s`; `-Dspring.profiles.active=prod`
+  in ENTRYPOINT. Placed at repo root so Railway's build context resolves
+  `backend/` paths correctly.
+- `.dockerignore` (repo root): excludes `backend/.gradle/`, `backend/build/`,
+  `frontend/`, `.env*`.
+- `docker-compose.prod.yml`: full-stack local smoke-test compose — api, db
+  (postgres:16-alpine), redis (redis:7-alpine) with healthcheck gates; all
+  secrets read from `.env` at runtime; WhatsApp vars default to empty (STUB).
+- `railway.toml`: `builder = "DOCKERFILE"`, `dockerfilePath = "Dockerfile"`,
+  `healthcheckPath = "/actuator/health/liveness"`, `healthcheckTimeout = 30`.
+  Railway's native GitHub integration auto-deploys on push to `main`.
+- `frontend/vercel.json`: framework hint only (`{"framework":"nextjs"}`); API
+  URL (`NEXT_PUBLIC_API_BASE`) set per-environment in Vercel dashboard.
+- 118 backend tests remain green; no schema changes.
+
 ### Added — 2026-06-19 — Admin Dashboard UI (Phase 7)
 
 - `frontend/lib/admin-api.ts`: typed HTTP client wrapping all `/api/admin/v1/**`

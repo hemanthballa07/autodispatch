@@ -2,6 +2,29 @@
 
 ## Current phase
 
+**Production Hardening + Deployment complete (Phase 8). The backend is containerised, instrumented, and ready to ship to Railway; the frontend is Vercel-ready. WhatsApp LIVE mode activation is a one-line env var change once the Railway URL is known.**
+
+Phase 8 added:
+- `logback-spring.xml`: JSON logging on `prod` profile, colored console elsewhere.
+- Actuator health probes (`/actuator/health/liveness`, `/actuator/health/readiness`)
+  + Prometheus metrics (`/actuator/prometheus`).
+- Micrometer tracing (`micrometer-tracing-bridge-otel`) — `traceId`/`spanId` in
+  every log line automatically.
+- `Dockerfile` (repo root, multi-stage jdk-alpine → jre-alpine), `.dockerignore`,
+  `docker-compose.prod.yml` (local prod smoke-test), `railway.toml`,
+  `frontend/vercel.json`.
+- `application-prod.yml` with `POSTGRES_*`/`REDIS_*` env var bindings for Railway.
+- 118 backend tests green; no schema changes.
+
+**To deploy:**
+1. Push to `main` → Railway auto-deploys (native GitHub integration).
+2. Map Railway Postgres plugin vars → `POSTGRES_HOST/PORT/DB/USER/PASSWORD` in Railway dashboard.
+3. Map Redis plugin vars → `REDIS_HOST/PORT`.
+4. Set `JWT_SECRET`, `ADMIN_API_KEY`, `WHATSAPP_VERIFY_TOKEN`.
+5. Deploy frontend to Vercel (root dir = `frontend`); set `NEXT_PUBLIC_API_BASE` (Production only).
+6. Set `AUTODISPATCH_CORS_ALLOWED_ORIGINS=https://<vercel-app>.vercel.app` in Railway.
+7. Activate WhatsApp LIVE: set `WHATSAPP_MODE=LIVE` + credentials in Railway.
+
 **Admin Dashboard UI complete (Phase 7). Campus operators can log in via `/admin`, view live system stats, manage drivers (register/verify/suspend/unsuspend), and browse rides (filter by status/date, paginate). Auth guard uses sessionStorage; sign-out clears the key.**
 
 Phase 7 added:

@@ -1,0 +1,4 @@
+backend/.gradle/
+backend/build/
+frontend/
+.env*
