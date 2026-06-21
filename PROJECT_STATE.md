@@ -2,7 +2,17 @@
 
 ## Current phase
 
-**Production Hardening + Deployment complete (Phase 8). The backend is containerised, instrumented, and ready to ship to Railway; the frontend is Vercel-ready. WhatsApp LIVE mode activation is a one-line env var change once the Railway URL is known.**
+**Frontend Redesign complete (Phase 9). Tailwind CSS v4 + shadcn/ui (neutral theme, `#106344` brand green) installed; 5 screens redesigned + 4 new features (receipt, profile, bottom nav, pagination). 40 frontend tests pass. Ready to deploy.**
+
+Phase 9 added:
+- Tailwind CSS v4 + shadcn/ui neutral theme; `postcss.config.mjs`, `components.json`, `lib/utils.ts`.
+- shadcn components: button, card, input, select, badge, separator, skeleton.
+- New components: `StatusBadge`, `RideProgressStepper`, `DriverCard`, `RideReceipt`, `BottomNav`.
+- Redesigned: landing (hero + How It Works), BookingFlow (Card + localStorage), RideStatusView
+  (stepper + receipt), history (card list + pagination), admin pages (Tailwind tables + Card).
+- New: `app/profile/page.tsx`, `app/layout.tsx` adds BottomNav + pb-16.
+- `lib/api.ts`: `listRides(page: number = 0)`.
+- 40 frontend tests green.
 
 Phase 8 added:
 - `logback-spring.xml`: JSON logging on `prod` profile, colored console elsewhere.

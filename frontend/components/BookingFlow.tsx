@@ -11,11 +11,12 @@ import {
   setToken,
   type Location,
 } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-/**
- * First-run session capture + booking form. `onBooked` receives the new ride
- * id (the page navigates to the status screen).
- */
 export default function BookingFlow({ onBooked }: { onBooked: (rideId: string) => void }) {
   const [hasSession, setHasSession] = useState<boolean | null>(null);
   const [name, setName] = useState("");
@@ -25,6 +26,7 @@ export default function BookingFlow({ onBooked }: { onBooked: (rideId: string) =
   const [pickupId, setPickupId] = useState("");
   const [dropId, setDropId] = useState("");
   const [fare, setFare] = useState<number | null>(null);
+  const [loadingLocations, setLoadingLocations] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,10 +35,13 @@ export default function BookingFlow({ onBooked }: { onBooked: (rideId: string) =
   }, []);
 
   const loadLocations = useCallback(async () => {
+    setLoadingLocations(true);
     try {
       setLocations(await getLocations());
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not load stops.");
+    } finally {
+      setLoadingLocations(false);
     }
   }, []);
 
@@ -66,6 +71,8 @@ export default function BookingFlow({ onBooked }: { onBooked: (rideId: string) =
     try {
       const session = await createSession(name.trim(), phone.trim());
       setToken(session.token);
+      localStorage.setItem("autodispatch_name", name.trim());
+      localStorage.setItem("autodispatch_phone", phone.trim());
       setHasSession(true);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not start session.");
@@ -73,7 +80,7 @@ export default function BookingFlow({ onBooked }: { onBooked: (rideId: string) =
   }
 
   async function confirmBooking() {
-    if (submitting) return; // duplicate taps must not create two rides
+    if (submitting) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -85,70 +92,158 @@ export default function BookingFlow({ onBooked }: { onBooked: (rideId: string) =
     }
   }
 
+  const selectClass = cn(
+    "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2",
+    "text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+    "disabled:cursor-not-allowed disabled:opacity-50",
+  );
+
   if (hasSession === null) {
-    return <p>Loading…</p>;
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <Skeleton className="h-64 w-full max-w-md rounded-2xl" />
+      </div>
+    );
   }
 
   if (!hasSession) {
     return (
-      <form onSubmit={startSession} aria-label="Start session">
-        <h2>Tell us who you are</h2>
-        <label>
-          Name
-          <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} />
-        </label>
-        <label>
-          Phone
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            required
-            inputMode="tel"
-            placeholder="+91…"
-          />
-        </label>
-        {error && <p role="alert">{error}</p>}
-        <button type="submit">Continue</button>
-      </form>
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <Card className="w-full max-w-md shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Tell us who you are</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={startSession} aria-label="Start session" className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="name" className="text-sm font-medium text-foreground">
+                  Name
+                </label>
+                <Input
+                  id="name"
+                  aria-label="Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  maxLength={120}
+                  placeholder="Your name"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="phone" className="text-sm font-medium text-foreground">
+                  Phone
+                </label>
+                <Input
+                  id="phone"
+                  aria-label="Phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  inputMode="tel"
+                  placeholder="+91…"
+                />
+              </div>
+              {error && (
+                <p role="alert" className="text-sm text-red-600">
+                  {error}
+                </p>
+              )}
+              <Button
+                type="submit"
+                className="w-full bg-[#106344] text-white hover:bg-[#0d5238]"
+              >
+                Continue
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   const ready = pickupId !== "" && dropId !== "" && pickupId !== dropId && fare !== null;
 
   return (
-    <div>
-      <h2>Book a ride</h2>
-      <label>
-        Pickup
-        <select
-          aria-label="Pickup"
-          value={pickupId}
-          onChange={(e) => setPickupId(e.target.value)}
-        >
-          <option value="">Select pickup…</option>
-          {locations.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Drop
-        <select aria-label="Drop" value={dropId} onChange={(e) => setDropId(e.target.value)}>
-          <option value="">Select drop…</option>
-          {locations.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      {fare !== null && <p aria-label="Fare estimate">Fare: ₹{fare}</p>}
-      {error && <p role="alert">{error}</p>}
-      <button type="button" onClick={confirmBooking} disabled={!ready || submitting}>
-        {submitting ? "Booking…" : "Confirm ride"}
-      </button>
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <Card className="w-full max-w-md shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Book a ride</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {loadingLocations ? (
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-10 w-full rounded-md" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="pickup" className="text-sm font-medium text-foreground">
+                  Pickup
+                </label>
+                <select
+                  id="pickup"
+                  aria-label="Pickup"
+                  value={pickupId}
+                  onChange={(e) => setPickupId(e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="">Select pickup…</option>
+                  {locations.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label htmlFor="drop" className="text-sm font-medium text-foreground">
+                  Drop
+                </label>
+                <select
+                  id="drop"
+                  aria-label="Drop"
+                  value={dropId}
+                  onChange={(e) => setDropId(e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="">Select drop…</option>
+                  {locations.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {fare !== null && (
+                <p
+                  aria-label="Fare estimate"
+                  className="text-center text-3xl font-bold text-[#106344]"
+                >
+                  ₹{fare}
+                </p>
+              )}
+            </>
+          )}
+
+          {error && (
+            <p role="alert" className="text-sm text-red-600">
+              {error}
+            </p>
+          )}
+
+          <Button
+            type="button"
+            onClick={confirmBooking}
+            disabled={!ready || submitting}
+            className="w-full bg-[#106344] text-white hover:bg-[#0d5238] disabled:opacity-50"
+          >
+            {submitting ? "Booking…" : "Confirm ride"}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

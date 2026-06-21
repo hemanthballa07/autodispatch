@@ -5,6 +5,24 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-21 — Frontend Redesign (Phase 9)
+
+- **Tailwind CSS v4 + shadcn/ui**: `tailwindcss`, `@tailwindcss/postcss`, shadcn
+  component library (neutral theme, `#106344` brand green); `postcss.config.mjs`;
+  `components.json`; `globals.css` rewritten with `@import "tailwindcss"`,
+  `@theme inline` variable mapping, OKLCH neutral palette, brand tokens.
+- **shadcn components**: button, card, input, select, badge, separator, skeleton.
+- **New shared components**: `StatusBadge`, `RideProgressStepper`, `DriverCard`,
+  `RideReceipt`, `BottomNav` (hides on `/admin/*`).
+- **Redesigned screens**: landing page (hero + How It Works), BookingFlow (Card +
+  Input + styled native select + localStorage name/phone), RideStatusView (stepper
+  + receipt transition + red cancel), history (card list + pagination + StatusBadge),
+  all admin pages (Card tables, brand nav hover).
+- **New**: `app/profile/page.tsx` (`'use client'`, localStorage read, sign-out).
+- **`app/layout.tsx`**: `<BottomNav />` + `<main className="pb-16">`.
+- **`lib/api.ts`**: `listRides(page: number = 0)` adds `&page=` query param.
+- All 40 frontend tests pass unchanged.
+
 ### Added — 2026-06-20 — Production Hardening + Deployment (Phase 8)
 
 - `backend/build.gradle`: added `logstash-logback-encoder:8.0`,

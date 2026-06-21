@@ -1,5 +1,7 @@
 'use client';
 
+import { Card, CardContent } from '@/components/ui/card';
+
 interface Props {
   label: string;
   value: number;
@@ -7,9 +9,11 @@ interface Props {
 
 export default function StatsCard({ label, value }: Props) {
   return (
-    <div style={{ border: '1px solid #ccc', borderRadius: 8, padding: '1rem', minWidth: 160 }}>
-      <div style={{ fontSize: '0.85rem', color: '#666' }}>{label}</div>
-      <div style={{ fontSize: '2rem', fontWeight: 700 }}>{value}</div>
-    </div>
+    <Card className="min-w-[160px]">
+      <CardContent className="pt-4">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="mt-1 text-3xl font-bold text-foreground">{value}</p>
+      </CardContent>
+    </Card>
   );
 }

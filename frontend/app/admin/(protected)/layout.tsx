@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ADMIN_KEY_STORAGE } from '@/lib/admin-api';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -25,14 +27,25 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div>
-      <nav style={{ display: 'flex', gap: '1rem', padding: '1rem', borderBottom: '1px solid #eee' }}>
-        <Link href="/admin">Dashboard</Link>
-        <Link href="/admin/drivers">Drivers</Link>
-        <Link href="/admin/rides">Rides</Link>
-        <button onClick={signOut} style={{ marginLeft: 'auto' }}>Sign out</button>
+    <div className="min-h-screen bg-[#f9fafb]">
+      <nav className="flex items-center gap-4 bg-white px-6 py-3 shadow-sm">
+        <Link href="/admin" className="text-sm font-medium text-foreground hover:text-[#106344]">
+          Dashboard
+        </Link>
+        <Link href="/admin/drivers" className="text-sm font-medium text-foreground hover:text-[#106344]">
+          Drivers
+        </Link>
+        <Link href="/admin/rides" className="text-sm font-medium text-foreground hover:text-[#106344]">
+          Rides
+        </Link>
+        <div className="ml-auto">
+          <Button variant="outline" size="sm" onClick={signOut}>
+            Sign out
+          </Button>
+        </div>
       </nav>
-      <main style={{ padding: '1rem' }}>{children}</main>
+      <Separator />
+      <main className="px-6 py-6">{children}</main>
     </div>
   );
 }

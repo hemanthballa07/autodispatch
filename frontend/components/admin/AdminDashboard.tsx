@@ -22,8 +22,8 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <h1>Dashboard</h1>
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+      <h1 className="mb-6 text-2xl font-bold text-foreground">Dashboard</h1>
+      <div className="flex flex-wrap gap-4">
         <StatsCard label="Active Rides" value={stats.activeRides} />
         <StatsCard label="Completed Today" value={stats.completedToday} />
         <StatsCard label="Available Drivers" value={stats.availableDrivers} />

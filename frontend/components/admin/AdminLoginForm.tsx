@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { getStats, ADMIN_KEY_STORAGE } from '@/lib/admin-api';
 import { ApiError } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 interface Props {
   onSuccess: () => void;
@@ -35,24 +38,40 @@ export default function AdminLoginForm({ onSuccess }: Props) {
   }
 
   return (
-    <div style={{ maxWidth: 360, margin: '4rem auto', padding: '2rem' }}>
-      <h1>Admin Login</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="admin-key">Admin Key</label>
-          <input
-            id="admin-key"
-            type="password"
-            value={inputKey}
-            onChange={e => setInputKey(e.target.value)}
-            style={{ display: 'block', width: '100%', margin: '0.5rem 0' }}
-          />
-        </div>
-        {error && <p role="alert" style={{ color: 'red' }}>{error}</p>}
-        <button type="submit" disabled={submitting || inputKey.trim() === ''}>
-          {submitting ? 'Checking…' : 'Sign in'}
-        </button>
-      </form>
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <Card className="w-full max-w-sm shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Admin Login</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="admin-key" className="text-sm font-medium text-foreground">
+                Admin Key
+              </label>
+              <Input
+                id="admin-key"
+                type="password"
+                value={inputKey}
+                onChange={e => setInputKey(e.target.value)}
+                placeholder="Enter admin key"
+              />
+            </div>
+            {error && (
+              <p role="alert" className="text-sm text-red-600">
+                {error}
+              </p>
+            )}
+            <Button
+              type="submit"
+              disabled={submitting || inputKey.trim() === ''}
+              className="w-full bg-[#106344] text-white hover:bg-[#0d5238]"
+            >
+              {submitting ? 'Checking…' : 'Sign in'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

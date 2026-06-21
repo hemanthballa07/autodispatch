@@ -82,4 +82,5 @@ export const getRide = (rideId: string) => request<Ride>(`/api/v1/rides/${rideId
 export const cancelRide = (rideId: string) =>
   request<Ride>(`/api/v1/rides/${rideId}/cancel`, { method: "POST" });
 
-export const listRides = () => request<Ride[]>("/api/v1/rides?mine=true");
+export const listRides = (page: number = 0) =>
+  request<Ride[]>(`/api/v1/rides?mine=true&page=${page}`);

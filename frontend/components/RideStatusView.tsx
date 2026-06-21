@@ -1,15 +1,11 @@
 "use client";
 
 import type { Ride } from "@/lib/api";
-
-const STEPS: { state: string; label: string }[] = [
-  { state: "REQUESTED", label: "Requested" },
-  { state: "BROADCASTING", label: "Finding auto" },
-  { state: "ASSIGNED", label: "Assigned" },
-  { state: "ARRIVED", label: "Arrived" },
-  { state: "IN_PROGRESS", label: "On trip" },
-  { state: "COMPLETED", label: "Completed" },
-];
+import { TERMINAL_STATES } from "@/lib/api";
+import RideProgressStepper from "./RideProgressStepper";
+import DriverCard from "./DriverCard";
+import RideReceipt from "./RideReceipt";
+import { Button } from "@/components/ui/button";
 
 const HEADLINES: Record<string, string> = {
   REQUESTED: "Ride requested",
@@ -22,9 +18,8 @@ const HEADLINES: Record<string, string> = {
   EXPIRED: "No autos right now",
 };
 
-/**
- * Pure presentational status renderer — every ride state has a screen.
- */
+const DRIVER_VISIBLE = new Set(["ASSIGNED", "ARRIVED", "IN_PROGRESS", "COMPLETED"]);
+
 export default function RideStatusView({
   ride,
   onCancel,
@@ -34,47 +29,57 @@ export default function RideStatusView({
   onCancel?: () => void;
   cancelling?: boolean;
 }) {
-  const stepIndex = STEPS.findIndex((s) => s.state === ride.status);
+  const isTerminal = TERMINAL_STATES.includes(ride.status);
 
   return (
-    <section aria-label="Ride status">
-      <h2>{HEADLINES[ride.status] ?? ride.status}</h2>
-      <p>
+    <section
+      aria-label="Ride status"
+      className="mx-auto flex w-full max-w-md flex-col gap-5 px-4 py-6"
+    >
+      <h2 className="text-xl font-bold text-foreground">{HEADLINES[ride.status] ?? ride.status}</h2>
+
+      <p className="text-sm text-muted-foreground">
         {ride.pickup} → {ride.drop}
-        {ride.fare != null && <> · ₹{ride.fare}</>}
+        {ride.fare != null && (
+          <span className="ml-2 rounded-full bg-[#e8f5ef] px-2 py-0.5 text-xs font-medium text-[#106344]">
+            ₹{ride.fare}
+          </span>
+        )}
       </p>
 
       {ride.status === "EXPIRED" && (
-        <p role="status">No autos right now, try again in a few minutes.</p>
+        <p role="status" className="text-sm text-muted-foreground">
+          No autos right now, try again in a few minutes.
+        </p>
       )}
       {ride.status === "CANCELLED" && (
-        <p role="status">{ride.cancelReason ?? "This ride was cancelled."}</p>
+        <p role="status" className="text-sm text-muted-foreground">
+          {ride.cancelReason ?? "This ride was cancelled."}
+        </p>
       )}
 
-      {stepIndex >= 0 && (
-        <ol aria-label="Progress">
-          {STEPS.map((step, i) => (
-            <li key={step.state} aria-current={i === stepIndex ? "step" : undefined}>
-              {i <= stepIndex ? "● " : "○ "}
-              {step.label}
-            </li>
-          ))}
-        </ol>
+      {isTerminal ? (
+        <RideReceipt ride={ride} />
+      ) : (
+        <RideProgressStepper status={ride.status} />
       )}
 
-      {ride.driver && (
-        <div aria-label="Driver">
-          <h3>{ride.driver.name}</h3>
-          <p>
-            {ride.driver.vehicleNo} · {ride.driver.maskedPhone}
-          </p>
+      {DRIVER_VISIBLE.has(ride.status) && ride.driver && (
+        <div className="animate-in fade-in duration-300">
+          <DriverCard driver={ride.driver} />
         </div>
       )}
 
       {ride.cancellable && onCancel && (
-        <button type="button" onClick={onCancel} disabled={cancelling}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={cancelling}
+          className="w-full border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+        >
           {cancelling ? "Cancelling…" : "Cancel ride"}
-        </button>
+        </Button>
       )}
     </section>
   );
