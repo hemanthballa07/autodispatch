@@ -2,6 +2,44 @@
 
 ## Current phase
 
+**Phase 10 — Phase 3 complete. Rating + safety modules (V11 + V12). 175 backend tests green. ArchUnit green. Ready for deploy or further features.**
+
+Phase 10 / Phase 3 added:
+- Flyway V11: `ride_ratings` table (id, ride_id FK, driver_id FK, rater_rider_id FK, driver_stars INTEGER CHECK 1-5, comment VARCHAR(500) NULL, created_at); UNIQUE(ride_id, rater_rider_id); indexes on ride_id + driver_id.
+- Flyway V12: `safety_events` table (id, ride_id FK, rider_id FK, type CHECK ('SOS','INCIDENT_REPORT'), details VARCHAR(1000) NULL, created_at); indexes on ride_id + rider_id.
+- `rating.api`: `RatingView` record, `DriverRatingStats` record, `RatingService` interface.
+- `rating.internal`: `RideRating` entity (INTEGER driver_stars; package-private accessors), `RideRatingRepository` (custom `findByRideIdAndRaterRiderId`, `countByDriverId`, JPQL `findAverageStarsByDriverId`), `DefaultRatingService` (JdbcTemplate ride validation: COMPLETED + rider ownership + non-null driver; JPA for stats; `IllegalArgumentException` on all failures), `RatingController` (`POST /api/v1/rides/{rideId}/rating?stars=&comment=` → 201; `GET /` → 200 or 404), `RatingApiExceptionHandler` (IllegalArgumentException → 400; DataIntegrityViolationException → 409).
+- `safety.api`: `SafetyEventView` record, `SafetyService` interface.
+- `safety.internal`: `SafetyEvent` entity, `SafetyEventRepository` (ordered by createdAt desc), `DefaultSafetyService` (JdbcTemplate rider ownership validation; triggerSos + reportIncident + findByRide), `SafetyController` (`POST /api/v1/rides/{rideId}/safety/sos` + `/incident` → 201), `SafetyAdminController` (`GET /api/admin/rides/{rideId}/safety`; guarded by existing AdminAuthFilter), `SafetyApiExceptionHandler` (IllegalArgumentException → 400).
+- 21 new tests (175 total, was 154): `RatingServiceTest` (8 service-layer @Transactional), `RatingApiTest` (5 MockMvc HTTP-level), `SafetyServiceTest` (4 service-layer @Transactional), `SafetyApiTest` (4 MockMvc HTTP-level).
+
+Phase 10 / Phase 2 added:
+- Flyway V9: `payment_transactions` table (id, ride_id FK, rider_id FK, type CHECK, method CHECK, status CHECK, amount, acknowledged_at, created_at, updated_at); UNIQUE(ride_id, type); indexes on ride_id and rider_id.
+- Flyway V10: `driver_ledger` table (id, driver_id FK, ride_id FK nullable, type CHECK, amount, note, created_at); index on driver_id; partial index on ride_id WHERE NOT NULL.
+- `payment.api`: `PaymentMethod` enum, `PaymentStatus` enum, `PaymentTransactionView` record, `LedgerEntryView` record, `PaymentService` interface, `DriverLedgerService` interface.
+- `payment.internal`: `PaymentTransaction` entity (String fields for type/method/status, `markCollected()` mutator), `PaymentTransactionRepository`, `DriverLedgerEntry` entity, `DriverLedgerEntryRepository`, `DefaultPaymentService` (ownership check on acknowledge), `DefaultDriverLedgerService` (negate amount for CANCELLATION_PENALTY), `PaymentEventListener` (empty skeleton), `PaymentController` (`POST /api/v1/rides/{rideId}/payment/initiate`, `POST /acknowledge`, `GET /`; uses literal `"riderId"` attribute to avoid importing rider.internal), `LedgerAdminController` (`GET /api/admin/drivers/{driverId}/ledger`, page size capped at 100), `PaymentApiExceptionHandler` (IllegalArgumentException → 400, DataIntegrityViolationException → 409).
+- `ModuleBoundaryTest.MODULES` extended with `"payment"`, `"rating"`, `"safety"`.
+- 16 new tests: `PaymentServiceTest` (9, service-layer `@Transactional` — covers PaymentService + DriverLedgerService), `PaymentAcknowledgmentTest` (7, MockMvc HTTP-level — covers initiate/acknowledge/list endpoints, auth, cross-rider ownership, duplicate conflict, admin ledger endpoint).
+- 154 backend tests green (was 138).
+
+Phase 10 / Phase 1 added:
+- Flyway V7: `vehicle_types` table; seed "Auto" row; `vehicle_type_id` FK on `drivers` + `fare_rules`; `fare_rules` PK changed to `(pickup_zone, drop_zone, vehicle_type_id)`.
+- Flyway V8: 8 new nullable columns on `rides` (`vehicle_type_id`, `pickup_location_id`, `drop_location_id`, `scheduled_for`, `cancelled_by`, `arrived_at`, `started_at`, `final_amount`); `SCHEDULED` added to status CHECK; `idx_rides_scheduled`, `idx_rides_driver_completed` indexes; `uq_rides_one_active_per_rider` updated to include `'SCHEDULED'`.
+- `SCHEDULED` status in `RideStatus` with `ALLOWED_TRANSITIONS[SCHEDULED] = {REQUESTED, CANCELLED}`.
+- `Ride` entity: 8 new nullable fields, `recordCancelledBy(String)` method, 8-arg scheduled-ride constructor.
+- `VehicleType` entity + `VehicleTypeRepository` in `driver.internal`.
+- `VehicleTypeCatalog` interface + `VehicleTypeView` record in `driver.api`; `VehicleTypeController` at `GET /api/v1/vehicle-types`.
+- `FareService.estimate()` extended to 3-arg overload accepting nullable `vehicleTypeId`; 2-arg becomes default delegate.
+- `DefaultFareService` implements 3-arg estimate (null → original query; non-null → adds `AND vehicle_type_id = ?`).
+- `CatalogController` fare-estimate endpoint gains `@RequestParam(required = false) UUID vehicleTypeId`.
+- `RideBooking.requestRide()` extended to 8-arg overload; 4-arg is default delegate.
+- `RideBookingService` implements 8-arg overload; `SCHEDULED` added to `ACTIVE_STATUSES`.
+- `RideController`: `CreateRideRequest` gains `vehicleTypeId` + `scheduledFor`; calls 8-arg `requestRide`; `startDispatch` only if not scheduled; `CANCELLABLE` states include `SCHEDULED`.
+- `ScheduledRideReleaseSweeper` in `dispatch.internal`: 30s fixedDelay; `DispatchService.releaseScheduledOne()` (affected-rows) + `startDispatch()` on winner; same structural pattern as `BroadcastTimeoutSweeper`.
+- `RideTransitionMatrixTest` updated for 9×9 matrix (SCHEDULED row + column).
+- New `ScheduledRideReleaseTest`: 2-thread concurrency gate — exactly one `releaseScheduledOne()` wins, ride is REQUESTED.
+- 136 backend tests green (was 118).
+
 **Frontend Redesign complete (Phase 9). Tailwind CSS v4 + shadcn/ui (neutral theme, `#106344` brand green) installed; 5 screens redesigned + 4 new features (receipt, profile, bottom nav, pagination). 40 frontend tests pass. Ready to deploy.**
 
 Phase 9 added:

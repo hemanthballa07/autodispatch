@@ -5,6 +5,94 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-21 — Rating + safety modules (Phase 10 / Phase 3)
+
+- **Flyway V11** (`V11__ride_ratings.sql`): `ride_ratings` table with ride_id/driver_id/rater_rider_id FKs,
+  INTEGER driver_stars CHECK 1-5, comment VARCHAR(500) nullable, UNIQUE(ride_id, rater_rider_id),
+  indexes on ride_id + driver_id.
+- **Flyway V12** (`V12__safety_events.sql`): `safety_events` table with ride_id/rider_id FKs,
+  type CHECK ('SOS','INCIDENT_REPORT'), details VARCHAR(1000) nullable, indexes on ride_id + rider_id.
+- **`rating.api`**: `RatingView` record, `DriverRatingStats` record, `RatingService` interface.
+- **`rating.internal`**: `RideRating` entity (INTEGER driver_stars, package-private accessors),
+  `RideRatingRepository` (findByRideIdAndRaterRiderId; JPQL countByDriverId + findAverageStarsByDriverId),
+  `DefaultRatingService` (JdbcTemplate for ride validation — COMPLETED status + rider ownership + non-null driver;
+  JPA repository for stats to respect JPA flush ordering; stars range check),
+  `RatingController` (`POST /api/v1/rides/{rideId}/rating?stars=&comment=` → 201; `GET /` → 200 or 404),
+  `RatingApiExceptionHandler` (IllegalArgumentException → 400; DataIntegrityViolationException → 409).
+- **`safety.api`**: `SafetyEventView` record, `SafetyService` interface.
+- **`safety.internal`**: `SafetyEvent` entity, `SafetyEventRepository` (findByRideIdOrderByCreatedAtDesc),
+  `DefaultSafetyService` (JdbcTemplate rider ownership validation; triggerSos + reportIncident + findByRide),
+  `SafetyController` (`POST /api/v1/rides/{rideId}/safety/sos` + `/incident` → 201),
+  `SafetyAdminController` (`GET /api/admin/rides/{rideId}/safety`; guarded by existing AdminAuthFilter),
+  `SafetyApiExceptionHandler` (IllegalArgumentException → 400).
+- **21 new tests** (175 total, was 154): `RatingServiceTest` (8 service-layer @Transactional),
+  `RatingApiTest` (5 MockMvc HTTP-level), `SafetyServiceTest` (4 service-layer @Transactional),
+  `SafetyApiTest` (4 MockMvc HTTP-level).
+
+### Added — 2026-06-21 — Payment + ledger module (Phase 10 / Phase 2)
+
+- **Flyway V9** (`V9__payment_transactions.sql`): `payment_transactions` table with
+  ride_id/rider_id FKs, type/method/status CHECK constraints, UNIQUE(ride_id, type),
+  and indexes on ride_id + rider_id.
+- **Flyway V10** (`V10__driver_ledger.sql`): `driver_ledger` table with driver_id FK,
+  nullable ride_id FK, type CHECK, and partial index on ride_id WHERE NOT NULL.
+- **`payment.api`**: `PaymentMethod` enum, `PaymentStatus` enum,
+  `PaymentTransactionView` record, `LedgerEntryView` record, `PaymentService` interface,
+  `DriverLedgerService` interface.
+- **`payment.internal`**: `PaymentTransaction` entity (String fields to avoid JPA enum
+  mapping issues; `markCollected()` mutator), `PaymentTransactionRepository` (custom
+  `findByRideIdAndType`), `DriverLedgerEntry` entity, `DriverLedgerEntryRepository`
+  (paginated by driver), `DefaultPaymentService` (riderId ownership check on
+  acknowledge; `IllegalArgumentException` on mismatch or missing tx),
+  `DefaultDriverLedgerService` (amount negated for CANCELLATION_PENALTY),
+  `PaymentEventListener` (empty @Component for future ride-completion events),
+  `PaymentController` (`POST /api/v1/rides/{rideId}/payment/initiate?amount=`,
+  `POST /acknowledge`, `GET`; uses literal `"riderId"` attribute to avoid
+  importing rider.internal), `LedgerAdminController`
+  (`GET /api/admin/drivers/{driverId}/ledger`, page size capped at 100),
+  `PaymentApiExceptionHandler` (`IllegalArgumentException` → 400,
+  `DataIntegrityViolationException` → 409).
+- **`ModuleBoundaryTest`**: MODULES array extended with `"payment"`, `"rating"`, `"safety"`.
+- **16 new tests** (154 total, was 138): `PaymentServiceTest` (9 service-layer tests
+  with `@Transactional` rollback — covers PaymentService and DriverLedgerService),
+  `PaymentAcknowledgmentTest` (7 MockMvc HTTP-level tests covering initiate/acknowledge
+  happy path, auth, cross-rider ownership, duplicate 409, list endpoint, and admin
+  ledger endpoint).
+
+### Added — 2026-06-21 — Vehicle types + ride enrichment (Phase 10 / Phase 1)
+
+- **Flyway V7** (`V7__vehicle_types.sql`): `vehicle_types` table; seed "Auto" row;
+  `vehicle_type_id` FK column on `drivers` + `fare_rules`; `fare_rules` PK replaced
+  with `(pickup_zone, drop_zone, vehicle_type_id)` (irreversible, no external FKs
+  existed on `fare_rules`).
+- **Flyway V8** (`V8__rides_new_columns.sql`): 8 new nullable columns on `rides`
+  (`vehicle_type_id`, `pickup_location_id`, `drop_location_id`, `scheduled_for`,
+  `cancelled_by`, `arrived_at`, `started_at`, `final_amount`); `SCHEDULED` added
+  to status CHECK; `idx_rides_scheduled`, `idx_rides_driver_completed` indexes;
+  `uq_rides_one_active_per_rider` partial-index updated to include `'SCHEDULED'`.
+- **`RideStatus.SCHEDULED`** with `ALLOWED_TRANSITIONS[SCHEDULED] = {REQUESTED, CANCELLED}`.
+  `Ride` entity gains 8 new nullable fields, `recordCancelledBy(String)`, and an
+  8-arg scheduled-ride constructor (sets status SCHEDULED when `scheduledFor` non-null).
+- **Vehicle type module** (`driver`): `VehicleType` JPA entity + `VehicleTypeRepository`
+  in `driver.internal`; `VehicleTypeCatalog` interface + `VehicleTypeView` record in
+  `driver.api`; `VehicleTypeController` at `GET /api/v1/vehicle-types`.
+- **`FareService.estimate()`** extended to 3-arg overload with nullable `vehicleTypeId`;
+  `DefaultFareService` adds `AND vehicle_type_id = ?` only when non-null (null keeps
+  original zone-pair query; backward-compatible). `CatalogController` fare-estimate
+  endpoint gains `@RequestParam(required = false) UUID vehicleTypeId`.
+- **`RideBooking.requestRide()`** extended to 8-arg overload (vehicleTypeId,
+  pickupLocationId, dropLocationId, scheduledFor, notes); 4-arg is default delegate.
+  `RideBookingService` implements 8-arg; `SCHEDULED` added to `ACTIVE_STATUSES`.
+  `RideController` `CreateRideRequest` gains `vehicleTypeId` + `scheduledFor`;
+  `startDispatch` skipped for scheduled rides; `CANCELLABLE` states include `SCHEDULED`.
+- **`ScheduledRideReleaseSweeper`** in `dispatch.internal`: `fixedDelay=30_000`;
+  queries `findScheduledReadyForRelease()`, claims each via `releaseScheduledOne()`
+  (affected-rows, multi-instance safe), calls `startDispatch()` on winner only;
+  same guard + error-log pattern as `BroadcastTimeoutSweeper`.
+- **Tests**: `RideTransitionMatrixTest` updated for 9×9 matrix (SCHEDULED transitions);
+  new `ScheduledRideReleaseTest` proves 2-thread concurrent release has exactly one winner.
+  **136 backend tests green** (was 118).
+
 ### Added — 2026-06-21 — Frontend Redesign (Phase 9)
 
 - **Tailwind CSS v4 + shadcn/ui**: `tailwindcss`, `@tailwindcss/postcss`, shadcn

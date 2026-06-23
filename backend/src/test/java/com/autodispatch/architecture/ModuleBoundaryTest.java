@@ -20,7 +20,7 @@ class ModuleBoundaryTest {
 
     private static final String BASE = "com.autodispatch";
     private static final String[] MODULES =
-            {"rider", "driver", "dispatch", "fare", "notification", "admin", "common"};
+            {"rider", "driver", "dispatch", "fare", "notification", "admin", "common", "payment", "rating", "safety"};
 
     private static JavaClasses classes;
 
