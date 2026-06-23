@@ -64,6 +64,30 @@ public class Ride {
     @Column(name = "cancel_reason", length = 255)
     private String cancelReason;
 
+    @Column(name = "cancelled_by", length = 16)
+    private String cancelledBy;
+
+    @Column(name = "vehicle_type_id")
+    private UUID vehicleTypeId;
+
+    @Column(name = "pickup_location_id")
+    private UUID pickupLocationId;
+
+    @Column(name = "drop_location_id")
+    private UUID dropLocationId;
+
+    @Column(name = "scheduled_for")
+    private Instant scheduledFor;
+
+    @Column(name = "arrived_at")
+    private Instant arrivedAt;
+
+    @Column(name = "started_at")
+    private Instant startedAt;
+
+    @Column(name = "final_amount", precision = 10, scale = 2)
+    private BigDecimal finalAmount;
+
     @Column(name = "rebroadcast_count", nullable = false)
     private int rebroadcastCount;
 
@@ -95,6 +119,22 @@ public class Ride {
         this.fareAmount = quotedFare;
     }
 
+    /**
+     * Scheduled-ride constructor: ride starts in SCHEDULED state and is released
+     * to REQUESTED by {@code ScheduledRideReleaseSweeper} at {@code scheduledFor}.
+     */
+    public Ride(UUID riderId, String pickupLabel, String dropLabel, BigDecimal quotedFare,
+                UUID vehicleTypeId, UUID pickupLocationId, UUID dropLocationId, Instant scheduledFor) {
+        this(riderId, pickupLabel, dropLabel, quotedFare);
+        this.vehicleTypeId = vehicleTypeId;
+        this.pickupLocationId = pickupLocationId;
+        this.dropLocationId = dropLocationId;
+        if (scheduledFor != null) {
+            this.status = RideStatus.SCHEDULED;
+            this.scheduledFor = scheduledFor;
+        }
+    }
+
     @PrePersist
     void onCreate() {
         if (requestedAt == null) {
@@ -118,6 +158,12 @@ public class Ride {
                         "rebroadcast budget (" + MAX_REBROADCASTS + ") exhausted");
             }
             rebroadcastCount++;
+        }
+        if (newStatus == RideStatus.ARRIVED) {
+            arrivedAt = Instant.now();
+        }
+        if (newStatus == RideStatus.IN_PROGRESS) {
+            startedAt = Instant.now();
         }
         if (newStatus == RideStatus.COMPLETED) {
             completedAt = Instant.now();
@@ -143,6 +189,10 @@ public class Ride {
 
     public void recordCancelReason(String reason) {
         this.cancelReason = reason;
+    }
+
+    public void recordCancelledBy(String party) {
+        this.cancelledBy = party;
     }
 
     public UUID getId() {
@@ -187,6 +237,38 @@ public class Ride {
 
     public String getCancelReason() {
         return cancelReason;
+    }
+
+    public String getCancelledBy() {
+        return cancelledBy;
+    }
+
+    public UUID getVehicleTypeId() {
+        return vehicleTypeId;
+    }
+
+    public UUID getPickupLocationId() {
+        return pickupLocationId;
+    }
+
+    public UUID getDropLocationId() {
+        return dropLocationId;
+    }
+
+    public Instant getScheduledFor() {
+        return scheduledFor;
+    }
+
+    public Instant getArrivedAt() {
+        return arrivedAt;
+    }
+
+    public Instant getStartedAt() {
+        return startedAt;
+    }
+
+    public BigDecimal getFinalAmount() {
+        return finalAmount;
     }
 
     public int getRebroadcastCount() {

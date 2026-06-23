@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -245,6 +246,49 @@ class RiderApiIntegrationTest {
         // COMPLETED (terminal) → 409
         dispatchApi.markCompleted(arrivedRide);
         cancelExpecting(arrived.token(), arrivedRide, 409);
+    }
+
+    // ---- gate 7: vehicle types catalog -----------------------------------------------
+
+    @Test
+    void vehicle_types_endpoint_returns_seeded_auto_type() throws Exception {
+        String token = sessionToken("VT Rider");
+        JsonNode body = getJson("/api/v1/vehicle-types", token, 200);
+        assertTrue(body.isArray() && body.size() >= 1, "at least one vehicle type must be seeded");
+        boolean hasAuto = false;
+        for (JsonNode node : body) {
+            if ("Auto".equals(node.path("name").textValue())) {
+                hasAuto = true;
+            }
+        }
+        assertTrue(hasAuto, "seeded 'Auto' vehicle type must appear in the catalog");
+    }
+
+    // ---- gate 8: scheduled ride creation + cancel ------------------------------------
+
+    @Test
+    void scheduled_ride_gets_scheduled_status_and_can_be_cancelled() throws Exception {
+        String token = sessionToken("Sched Rider");
+        onlineDriver(); // not needed for scheduled path but keeps test symmetric
+
+        String futureTime = Instant.now().plusSeconds(7200).toString();
+        MvcResult result = mockMvc.perform(post("/api/v1/rides")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pickupId\":\"%s\",\"dropId\":\"%s\",\"scheduledFor\":\"%s\"}"
+                                .formatted(loc("Main gate"), loc("Library"), futureTime)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        JsonNode created = json.readTree(result.getResponse().getContentAsString());
+        assertEquals("SCHEDULED", created.path("status").stringValue(),
+                "ride with future scheduledFor must start in SCHEDULED state");
+        assertTrue(created.path("cancellable").asBoolean(),
+                "SCHEDULED ride must be marked cancellable in the response");
+
+        UUID rideId = UUID.fromString(created.path("id").stringValue());
+        cancelExpecting(token, rideId, 200);
+        assertEquals("CANCELLED", rideStatusVia(token, rideId),
+                "SCHEDULED→CANCELLED transition must succeed via cancel endpoint");
     }
 
     // ---- helpers ---------------------------------------------------------------------

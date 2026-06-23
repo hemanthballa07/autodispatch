@@ -177,6 +177,17 @@ public class DispatchService implements DispatchApi, DispatchQueries {
     }
 
     /**
+     * Atomic SCHEDULED→REQUESTED release for one ride. Multi-instance safe:
+     * the conditional update ensures exactly one caller wins per ride.
+     *
+     * @return true if this caller won and the ride is now REQUESTED
+     */
+    @Transactional
+    boolean releaseScheduledOne(UUID rideId) {
+        return rideRepository.claimScheduledRelease(rideId) == 1;
+    }
+
+    /**
      * One sweep step for one ride, multi-instance safe: ownership of the round
      * advance / final expiry is claimed via conditional updates on
      * current_round_expires_at — affected-rows pattern, no Redis locks.

@@ -8,6 +8,7 @@ import java.util.Set;
  * Ride lifecycle with the explicit allowed-transitions map (locked design):
  *
  * <pre>
+ * SCHEDULED    → REQUESTED | CANCELLED  (sweeper releases at scheduled_for time)
  * REQUESTED    → BROADCASTING | CANCELLED
  * BROADCASTING → ASSIGNED | EXPIRED | CANCELLED
  * ASSIGNED     → ARRIVED | CANCELLED | BROADCASTING (driver-cancel, max 1 — guarded in Ride)
@@ -17,6 +18,7 @@ import java.util.Set;
  * </pre>
  */
 public enum RideStatus {
+    SCHEDULED,
     REQUESTED,
     BROADCASTING,
     ASSIGNED,
@@ -26,15 +28,16 @@ public enum RideStatus {
     CANCELLED,
     EXPIRED;
 
-    private static final Map<RideStatus, Set<RideStatus>> ALLOWED_TRANSITIONS = Map.of(
-            REQUESTED, EnumSet.of(BROADCASTING, CANCELLED),
-            BROADCASTING, EnumSet.of(ASSIGNED, EXPIRED, CANCELLED),
-            ASSIGNED, EnumSet.of(ARRIVED, CANCELLED, BROADCASTING),
-            ARRIVED, EnumSet.of(IN_PROGRESS),
-            IN_PROGRESS, EnumSet.of(COMPLETED),
-            COMPLETED, EnumSet.noneOf(RideStatus.class),
-            CANCELLED, EnumSet.noneOf(RideStatus.class),
-            EXPIRED, EnumSet.noneOf(RideStatus.class));
+    private static final Map<RideStatus, Set<RideStatus>> ALLOWED_TRANSITIONS = Map.ofEntries(
+            Map.entry(SCHEDULED, EnumSet.of(REQUESTED, CANCELLED)),
+            Map.entry(REQUESTED, EnumSet.of(BROADCASTING, CANCELLED)),
+            Map.entry(BROADCASTING, EnumSet.of(ASSIGNED, EXPIRED, CANCELLED)),
+            Map.entry(ASSIGNED, EnumSet.of(ARRIVED, CANCELLED, BROADCASTING)),
+            Map.entry(ARRIVED, EnumSet.of(IN_PROGRESS)),
+            Map.entry(IN_PROGRESS, EnumSet.of(COMPLETED)),
+            Map.entry(COMPLETED, EnumSet.noneOf(RideStatus.class)),
+            Map.entry(CANCELLED, EnumSet.noneOf(RideStatus.class)),
+            Map.entry(EXPIRED, EnumSet.noneOf(RideStatus.class)));
 
     public boolean canTransitionTo(RideStatus target) {
         return ALLOWED_TRANSITIONS.get(this).contains(target);

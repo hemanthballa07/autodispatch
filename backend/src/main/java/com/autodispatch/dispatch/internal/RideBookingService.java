@@ -4,6 +4,7 @@ import com.autodispatch.dispatch.api.ActiveRideExistsException;
 import com.autodispatch.dispatch.api.RideBooking;
 import com.autodispatch.dispatch.api.RideNotCancellableException;
 import com.autodispatch.dispatch.api.RideView;
+import java.time.Instant;
 import com.autodispatch.driver.api.DriverAvailabilityService;
 import com.autodispatch.notification.api.MessageCatalog;
 import com.autodispatch.notification.api.WhatsAppGateway;
@@ -24,8 +25,8 @@ import java.util.UUID;
 public class RideBookingService implements RideBooking {
 
     static final Set<RideStatus> ACTIVE_STATUSES = EnumSet.of(
-            RideStatus.REQUESTED, RideStatus.BROADCASTING, RideStatus.ASSIGNED,
-            RideStatus.ARRIVED, RideStatus.IN_PROGRESS);
+            RideStatus.SCHEDULED, RideStatus.REQUESTED, RideStatus.BROADCASTING,
+            RideStatus.ASSIGNED, RideStatus.ARRIVED, RideStatus.IN_PROGRESS);
 
     private final RideRepository rideRepository;
     private final DriverAvailabilityService driverAvailability;
@@ -41,7 +42,9 @@ public class RideBookingService implements RideBooking {
 
     @Override
     @Transactional
-    public UUID requestRide(UUID riderId, String pickupLabel, String dropLabel, BigDecimal quotedFare) {
+    public UUID requestRide(UUID riderId, String pickupLabel, String dropLabel, BigDecimal quotedFare,
+                            UUID vehicleTypeId, UUID pickupLocationId, UUID dropLocationId,
+                            Instant scheduledFor) {
         if (rideRepository.existsByRiderIdAndStatusIn(riderId, ACTIVE_STATUSES)) {
             throw new ActiveRideExistsException(riderId);
         }
@@ -49,7 +52,8 @@ public class RideBookingService implements RideBooking {
             // saveAndFlush so a concurrent double-tap hits the partial unique
             // index (one active ride per rider) inside this transaction.
             return rideRepository.saveAndFlush(
-                    new Ride(riderId, pickupLabel, dropLabel, quotedFare)).getId();
+                    new Ride(riderId, pickupLabel, dropLabel, quotedFare,
+                             vehicleTypeId, pickupLocationId, dropLocationId, scheduledFor)).getId();
         } catch (DataIntegrityViolationException raced) {
             throw new ActiveRideExistsException(riderId);
         }

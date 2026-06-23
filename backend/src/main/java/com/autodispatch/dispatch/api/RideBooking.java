@@ -1,6 +1,7 @@
 package com.autodispatch.dispatch.api;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,11 +13,22 @@ import java.util.UUID;
 public interface RideBooking {
 
     /**
-     * Creates a REQUESTED ride with the quoted fare.
+     * Creates a REQUESTED ride immediately dispatched, or a SCHEDULED ride
+     * released by the sweeper at {@code scheduledFor}.
      *
      * @throws ActiveRideExistsException if the rider already has an active ride
      */
-    UUID requestRide(UUID riderId, String pickupLabel, String dropLabel, BigDecimal quotedFare);
+    UUID requestRide(UUID riderId, String pickupLabel, String dropLabel, BigDecimal quotedFare,
+                     UUID vehicleTypeId, UUID pickupLocationId, UUID dropLocationId, Instant scheduledFor);
+
+    /**
+     * Backward-compatible overload: creates an immediate REQUESTED ride.
+     *
+     * @throws ActiveRideExistsException if the rider already has an active ride
+     */
+    default UUID requestRide(UUID riderId, String pickupLabel, String dropLabel, BigDecimal quotedFare) {
+        return requestRide(riderId, pickupLabel, dropLabel, quotedFare, null, null, null, null);
+    }
 
     Optional<RideView> findRide(UUID rideId);
 

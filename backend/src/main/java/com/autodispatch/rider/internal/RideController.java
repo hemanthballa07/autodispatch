@@ -35,9 +35,10 @@ import java.util.UUID;
 class RideController {
 
     private static final int HISTORY_PAGE_SIZE = 20;
-    private static final Set<String> CANCELLABLE = Set.of("REQUESTED", "BROADCASTING", "ASSIGNED");
+    private static final Set<String> CANCELLABLE = Set.of("SCHEDULED", "REQUESTED", "BROADCASTING", "ASSIGNED");
 
-    record CreateRideRequest(@NotNull UUID pickupId, @NotNull UUID dropId) {
+    record CreateRideRequest(@NotNull UUID pickupId, @NotNull UUID dropId,
+                             UUID vehicleTypeId, Instant scheduledFor) {
     }
 
     record DriverCard(String name, String vehicleNo, String maskedPhone) {
@@ -81,13 +82,16 @@ class RideController {
         }
         LocationView pickup = activeLocation(request.pickupId(), "pickup");
         LocationView drop = activeLocation(request.dropId(), "drop");
-        BigDecimal fare = fareService.estimate(pickup.id(), drop.id())
+        BigDecimal fare = fareService.estimate(pickup.id(), drop.id(), request.vehicleTypeId())
                 .orElseThrow(() -> new ApiExceptions.UnprocessableException(
                         "No fare rule covers this pickup/drop pair."));
 
-        UUID rideId = rideBooking.requestRide(riderId, pickup.name(), drop.name(), fare);
+        UUID rideId = rideBooking.requestRide(riderId, pickup.name(), drop.name(), fare,
+                request.vehicleTypeId(), request.pickupId(), request.dropId(), request.scheduledFor());
         rateLimiter.recordCreation(riderId);
-        dispatchApi.startDispatch(rideId);
+        if (request.scheduledFor() == null) {
+            dispatchApi.startDispatch(rideId);
+        }
         return toResponse(ownRide(rideId, riderId));
     }
 

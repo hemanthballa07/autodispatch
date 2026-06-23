@@ -41,8 +41,10 @@ class CatalogController {
     }
 
     @GetMapping("/fares/estimate")
-    FareEstimateResponse estimate(@RequestParam UUID pickupId, @RequestParam UUID dropId) {
-        BigDecimal amount = fareService.estimate(pickupId, dropId)
+    FareEstimateResponse estimate(@RequestParam UUID pickupId,
+                                  @RequestParam UUID dropId,
+                                  @RequestParam(required = false) UUID vehicleTypeId) {
+        BigDecimal amount = fareService.estimate(pickupId, dropId, vehicleTypeId)
                 .orElseThrow(() -> new ApiExceptions.UnprocessableException(
                         "No fare rule covers this pickup/drop pair."));
         return new FareEstimateResponse(amount);

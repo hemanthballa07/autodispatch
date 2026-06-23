@@ -139,6 +139,32 @@ public interface RideRepository extends JpaRepository<Ride, UUID> {
             """, nativeQuery = true)
     List<UUID> findOpenOfferedRideIds(@Param("driverId") UUID driverId);
 
+    /** SCHEDULED rides whose scheduled_for time has arrived and are ready for dispatch. */
+    @Query(value = """
+            SELECT id FROM rides
+             WHERE status = 'SCHEDULED'
+               AND scheduled_for <= now()
+            """, nativeQuery = true)
+    List<UUID> findScheduledReadyForRelease();
+
+    /**
+     * Atomic release: transitions one SCHEDULED ride to REQUESTED iff it is
+     * still SCHEDULED and its scheduled_for has passed. Multi-instance safe;
+     * exactly one caller wins per ride (affected-rows pattern).
+     *
+     * @return 1 if this caller won the transition, 0 otherwise
+     */
+    @Modifying
+    @Query(value = """
+            UPDATE rides
+               SET status = 'REQUESTED',
+                   version = version + 1
+             WHERE id = :rideId
+               AND status = 'SCHEDULED'
+               AND scheduled_for <= now()
+            """, nativeQuery = true)
+    int claimScheduledRelease(@Param("rideId") UUID rideId);
+
     long countByStatusIn(Collection<RideStatus> statuses);
 
     long countByStatusAndCompletedAtAfter(RideStatus status, Instant after);

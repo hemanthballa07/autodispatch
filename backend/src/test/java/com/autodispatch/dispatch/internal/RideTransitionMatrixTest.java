@@ -5,6 +5,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
@@ -21,6 +22,7 @@ import static com.autodispatch.dispatch.internal.RideStatus.COMPLETED;
 import static com.autodispatch.dispatch.internal.RideStatus.EXPIRED;
 import static com.autodispatch.dispatch.internal.RideStatus.IN_PROGRESS;
 import static com.autodispatch.dispatch.internal.RideStatus.REQUESTED;
+import static com.autodispatch.dispatch.internal.RideStatus.SCHEDULED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -33,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class RideTransitionMatrixTest {
 
     private static final Map<RideStatus, Set<RideStatus>> LEGAL = Map.of(
+            SCHEDULED, EnumSet.of(REQUESTED, CANCELLED),
             REQUESTED, EnumSet.of(BROADCASTING, CANCELLED),
             BROADCASTING, EnumSet.of(ASSIGNED, EXPIRED, CANCELLED),
             ASSIGNED, EnumSet.of(ARRIVED, CANCELLED, BROADCASTING),
@@ -44,6 +47,7 @@ class RideTransitionMatrixTest {
 
     /** Legal path that drives a fresh ride into each state. */
     private static final Map<RideStatus, List<RideStatus>> PATH_TO = Map.of(
+            SCHEDULED, List.of(),
             REQUESTED, List.of(),
             BROADCASTING, List.of(BROADCASTING),
             ASSIGNED, List.of(BROADCASTING, ASSIGNED),
@@ -89,6 +93,10 @@ class RideTransitionMatrixTest {
     }
 
     private Ride rideIn(RideStatus target) {
+        if (target == SCHEDULED) {
+            return new Ride(UUID.randomUUID(), "Main Gate", "Library",
+                    null, null, null, null, Instant.now().plusSeconds(3600));
+        }
         Ride ride = new Ride(UUID.randomUUID(), "Main Gate", "Library");
         PATH_TO.get(target).forEach(ride::transitionTo);
         return ride;

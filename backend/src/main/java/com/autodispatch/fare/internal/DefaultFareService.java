@@ -37,16 +37,24 @@ class DefaultFareService implements FareService, LocationCatalog {
     }
 
     @Override
-    public Optional<BigDecimal> estimate(UUID pickupLocationId, UUID dropLocationId) {
+    public Optional<BigDecimal> estimate(UUID pickupLocationId, UUID dropLocationId, UUID vehicleTypeId) {
         Optional<Location> pickup = locationRepository.findById(pickupLocationId).filter(Location::isActive);
         Optional<Location> drop = locationRepository.findById(dropLocationId).filter(Location::isActive);
         if (pickup.isEmpty() || drop.isEmpty()) {
             return Optional.empty();
         }
-        List<BigDecimal> amounts = jdbc.queryForList("""
-                SELECT amount FROM fare_rules
-                 WHERE pickup_zone = ? AND drop_zone = ?
-                """, BigDecimal.class, pickup.get().getZone(), drop.get().getZone());
+        List<BigDecimal> amounts;
+        if (vehicleTypeId != null) {
+            amounts = jdbc.queryForList("""
+                    SELECT amount FROM fare_rules
+                     WHERE pickup_zone = ? AND drop_zone = ? AND vehicle_type_id = ?
+                    """, BigDecimal.class, pickup.get().getZone(), drop.get().getZone(), vehicleTypeId);
+        } else {
+            amounts = jdbc.queryForList("""
+                    SELECT amount FROM fare_rules
+                     WHERE pickup_zone = ? AND drop_zone = ?
+                    """, BigDecimal.class, pickup.get().getZone(), drop.get().getZone());
+        }
         return amounts.stream().findFirst();
     }
 
