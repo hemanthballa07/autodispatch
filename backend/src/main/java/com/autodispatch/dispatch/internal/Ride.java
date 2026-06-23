@@ -195,6 +195,11 @@ public class Ride {
         this.cancelledBy = party;
     }
 
+    /** Snapshots the final charged amount on completion. */
+    public void lockFinalAmount(BigDecimal amount) {
+        this.finalAmount = amount;
+    }
+
     public UUID getId() {
         return id;
     }

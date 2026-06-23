@@ -4,6 +4,7 @@ import com.autodispatch.common.api.RideCodes;
 import com.autodispatch.dispatch.api.DispatchApi;
 import com.autodispatch.dispatch.api.DispatchQueries;
 import com.autodispatch.dispatch.api.DriverNotEligibleException;
+import com.autodispatch.dispatch.api.RideCompletedEvent;
 import com.autodispatch.driver.api.DriverAvailabilityService;
 import com.autodispatch.driver.api.DriverSummary;
 import com.autodispatch.notification.api.MessageCatalog;
@@ -12,6 +13,7 @@ import com.autodispatch.notification.api.WhatsAppGateway;
 import com.autodispatch.rider.api.RiderLookup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,17 +48,20 @@ public class DispatchService implements DispatchApi, DispatchQueries {
     private final DriverAvailabilityService driverAvailability;
     private final RiderLookup riderLookup;
     private final WhatsAppGateway whatsAppGateway;
+    private final ApplicationEventPublisher eventPublisher;
 
     public DispatchService(RideRepository rideRepository,
                            RideOfferRepository offerRepository,
                            DriverAvailabilityService driverAvailability,
                            RiderLookup riderLookup,
-                           WhatsAppGateway whatsAppGateway) {
+                           WhatsAppGateway whatsAppGateway,
+                           ApplicationEventPublisher eventPublisher) {
         this.rideRepository = rideRepository;
         this.offerRepository = offerRepository;
         this.driverAvailability = driverAvailability;
         this.riderLookup = riderLookup;
         this.whatsAppGateway = whatsAppGateway;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -171,9 +176,12 @@ public class DispatchService implements DispatchApi, DispatchQueries {
         Ride ride = require(rideId);
         UUID driverId = ride.getDriverId();
         ride.transitionTo(RideStatus.COMPLETED);
+        ride.lockFinalAmount(ride.getFareAmount());
         if (driverId != null) {
             driverAvailability.makeAvailable(driverId);
         }
+        eventPublisher.publishEvent(
+                new RideCompletedEvent(rideId, ride.getRiderId(), driverId, ride.getFinalAmount()));
     }
 
     /**
