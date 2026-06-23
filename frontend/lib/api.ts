@@ -84,3 +84,19 @@ export const cancelRide = (rideId: string) =>
 
 export const listRides = (page: number = 0) =>
   request<Ride[]>(`/api/v1/rides?mine=true&page=${page}`);
+
+export type RatingView = {
+  rideId: string;
+  stars: number;
+  comment: string | null;
+  createdAt: string;
+};
+
+export const getRating = (rideId: string) =>
+  request<RatingView>(`/api/v1/rides/${rideId}/rating`);
+
+export const submitRating = (rideId: string, stars: number, comment?: string) =>
+  request<RatingView>(
+    `/api/v1/rides/${rideId}/rating?stars=${stars}${comment ? `&comment=${encodeURIComponent(comment)}` : ""}`,
+    { method: "POST" },
+  );

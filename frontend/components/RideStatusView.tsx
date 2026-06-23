@@ -1,10 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import type { Ride } from "@/lib/api";
-import { TERMINAL_STATES } from "@/lib/api";
+import { TERMINAL_STATES, getRating, ApiError } from "@/lib/api";
 import RideProgressStepper from "./RideProgressStepper";
 import DriverCard from "./DriverCard";
 import RideReceipt from "./RideReceipt";
+import RatingModal from "./RatingModal";
 import { Button } from "@/components/ui/button";
 
 const HEADLINES: Record<string, string> = {
@@ -30,6 +32,17 @@ export default function RideStatusView({
   cancelling?: boolean;
 }) {
   const isTerminal = TERMINAL_STATES.includes(ride.status);
+
+  const [showRating, setShowRating] = useState(false);
+
+  useEffect(() => {
+    if (ride.status !== "COMPLETED") return;
+    getRating(ride.id)
+      .then(() => setShowRating(false))
+      .catch((e) => {
+        if (e instanceof ApiError && e.status === 404) setShowRating(true);
+      });
+  }, [ride.id, ride.status]);
 
   return (
     <section
@@ -59,7 +72,12 @@ export default function RideStatusView({
       )}
 
       {isTerminal ? (
-        <RideReceipt ride={ride} />
+        <>
+          <RideReceipt ride={ride} />
+          {ride.status === "COMPLETED" && showRating && (
+            <RatingModal rideId={ride.id} onRated={() => setShowRating(false)} />
+          )}
+        </>
       ) : (
         <RideProgressStepper status={ride.status} />
       )}
