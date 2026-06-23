@@ -109,3 +109,20 @@ export const reportIncident = (rideId: string, details: string) =>
     `/api/v1/rides/${rideId}/safety/incident?details=${encodeURIComponent(details)}`,
     { method: "POST" },
   );
+
+export type PaymentTransaction = {
+  id: string;
+  rideId: string;
+  type: string;
+  method: string;
+  status: string;
+  amount: number;
+};
+
+export const getPayments = (rideId: string) =>
+  request<PaymentTransaction[]>(`/api/v1/rides/${rideId}/payment`);
+
+export const acknowledgePayment = (rideId: string) =>
+  request<PaymentTransaction>(`/api/v1/rides/${rideId}/payment/acknowledge`, {
+    method: "POST",
+  });
