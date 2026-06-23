@@ -11,6 +11,7 @@ import SafetyControls from "./SafetyControls";
 import { Button } from "@/components/ui/button";
 
 const HEADLINES: Record<string, string> = {
+  SCHEDULED: "Ride scheduled — awaiting release",
   REQUESTED: "Ride requested",
   BROADCASTING: "Finding an auto near you…",
   ASSIGNED: "Driver assigned",

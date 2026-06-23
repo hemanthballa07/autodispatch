@@ -14,6 +14,7 @@ export type Ride = {
   requestedAt: string;
   completedAt: string | null;
   cancelReason: string | null;
+  scheduledFor: string | null;
 };
 
 export const TERMINAL_STATES = ["COMPLETED", "CANCELLED", "EXPIRED"];
@@ -71,10 +72,10 @@ export const estimateFare = (pickupId: string, dropId: string) =>
     `/api/v1/fares/estimate?pickupId=${pickupId}&dropId=${dropId}`,
   );
 
-export const createRide = (pickupId: string, dropId: string) =>
+export const createRide = (pickupId: string, dropId: string, scheduledFor?: string) =>
   request<Ride>("/api/v1/rides", {
     method: "POST",
-    body: JSON.stringify({ pickupId, dropId }),
+    body: JSON.stringify({ pickupId, dropId, ...(scheduledFor ? { scheduledFor } : {}) }),
   });
 
 export const getRide = (rideId: string) => request<Ride>(`/api/v1/rides/${rideId}`);

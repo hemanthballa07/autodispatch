@@ -46,7 +46,7 @@ class RideController {
 
     record RideResponse(UUID id, String status, String pickup, String drop, BigDecimal fare,
                         DriverCard driver, boolean cancellable, Instant requestedAt,
-                        Instant completedAt, String cancelReason) {
+                        Instant completedAt, String cancelReason, Instant scheduledFor) {
     }
 
     private final RideBooking rideBooking;
@@ -143,7 +143,7 @@ class RideController {
         }
         return new RideResponse(view.id(), view.status(), view.pickupLabel(), view.dropLabel(),
                 view.fareAmount(), driver, CANCELLABLE.contains(view.status()),
-                view.requestedAt(), view.completedAt(), view.cancelReason());
+                view.requestedAt(), view.completedAt(), view.cancelReason(), view.scheduledFor());
     }
 
     /** Never expose the raw wa_id: keep the country code and last 4 digits. */

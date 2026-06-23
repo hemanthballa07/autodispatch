@@ -47,7 +47,7 @@ describe("BookingFlow", () => {
 
     await waitFor(() => expect(onBooked).toHaveBeenCalledWith("ride-1"));
     expect(api.createRide).toHaveBeenCalledTimes(1);
-    expect(api.createRide).toHaveBeenCalledWith("loc-1", "loc-2");
+    expect(api.createRide).toHaveBeenCalledWith("loc-1", "loc-2", undefined);
   });
 
   it("duplicate taps do not create two rides", async () => {

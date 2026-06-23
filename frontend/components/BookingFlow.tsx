@@ -29,6 +29,8 @@ export default function BookingFlow({ onBooked }: { onBooked: (rideId: string) =
   const [loadingLocations, setLoadingLocations] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduledFor, setScheduledFor] = useState("");
 
   useEffect(() => {
     setHasSession(getToken() !== null);
@@ -84,7 +86,10 @@ export default function BookingFlow({ onBooked }: { onBooked: (rideId: string) =
     setSubmitting(true);
     setError(null);
     try {
-      const ride = await createRide(pickupId, dropId);
+      const isoScheduledFor = scheduleEnabled && scheduledFor
+        ? new Date(scheduledFor).toISOString()
+        : undefined;
+      const ride = await createRide(pickupId, dropId, isoScheduledFor);
       onBooked(ride.id);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Booking failed.");
@@ -161,7 +166,10 @@ export default function BookingFlow({ onBooked }: { onBooked: (rideId: string) =
     );
   }
 
-  const ready = pickupId !== "" && dropId !== "" && pickupId !== dropId && fare !== null;
+  const minScheduledFor = new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 16);
+  const ready =
+    pickupId !== "" && dropId !== "" && pickupId !== dropId && fare !== null &&
+    (!scheduleEnabled || scheduledFor !== "");
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
@@ -216,6 +224,39 @@ export default function BookingFlow({ onBooked }: { onBooked: (rideId: string) =
                   ))}
                 </select>
               </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  id="schedule-toggle"
+                  type="checkbox"
+                  aria-label="Schedule for later"
+                  checked={scheduleEnabled}
+                  onChange={(e) => {
+                    setScheduleEnabled(e.target.checked);
+                    if (!e.target.checked) setScheduledFor("");
+                  }}
+                  className="h-4 w-4 accent-[#106344]"
+                />
+                <label htmlFor="schedule-toggle" className="text-sm text-foreground cursor-pointer">
+                  Schedule for later
+                </label>
+              </div>
+              {scheduleEnabled && (
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="scheduled-for" className="text-sm font-medium text-foreground">
+                    Date &amp; time
+                  </label>
+                  <input
+                    id="scheduled-for"
+                    type="datetime-local"
+                    aria-label="Scheduled for date and time"
+                    min={minScheduledFor}
+                    value={scheduledFor}
+                    onChange={(e) => setScheduledFor(e.target.value)}
+                    className={selectClass}
+                  />
+                </div>
+              )}
 
               {fare !== null && (
                 <p

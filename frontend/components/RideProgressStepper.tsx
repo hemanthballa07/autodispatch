@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 
 const STEPS = [
+  { state: "SCHEDULED", label: "Scheduled" },
   { state: "REQUESTED", label: "Requested" },
   { state: "BROADCASTING", label: "Finding driver" },
   { state: "ASSIGNED", label: "Driver assigned" },

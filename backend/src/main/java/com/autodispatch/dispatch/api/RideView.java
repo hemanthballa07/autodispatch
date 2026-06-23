@@ -19,7 +19,8 @@ public record RideView(
         Instant requestedAt,
         Instant assignedAt,
         Instant completedAt,
-        String cancelReason) {
+        String cancelReason,
+        Instant scheduledFor) {
 
     private static final Set<String> TERMINAL = Set.of("COMPLETED", "CANCELLED", "EXPIRED");
 

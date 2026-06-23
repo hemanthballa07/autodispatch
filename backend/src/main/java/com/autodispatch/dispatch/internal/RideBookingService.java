@@ -98,6 +98,6 @@ public class RideBookingService implements RideBooking {
         return new RideView(ride.getId(), ride.getRiderId(), ride.getDriverId(),
                 ride.getPickupLabel(), ride.getDropLabel(), ride.getStatus().name(),
                 ride.getFareAmount(), ride.getRequestedAt(), ride.getAssignedAt(),
-                ride.getCompletedAt(), ride.getCancelReason());
+                ride.getCompletedAt(), ride.getCancelReason(), ride.getScheduledFor());
     }
 }
