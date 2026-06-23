@@ -5,6 +5,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-23 — UI integration + payment auto-flow (Phase 11)
+
+- **`dispatch.api.RideCompletedEvent`**: new Spring application event published after `DispatchService.markCompleted()` commits.
+- **`Ride.lockFinalAmount()`**: snapshots `fareAmount` → `finalAmount` on completion.
+- **`PaymentEventListener`**: `@TransactionalEventListener(AFTER_COMMIT)` + `REQUIRES_NEW` transaction — auto-initiates `RIDE_FARE` payment transaction and driver ledger credit on every ride completion.
+- **`RideView`** gains `scheduledFor` (12th component); propagated through `RideBookingService.toView()` and `RideController.RideResponse` to the HTTP layer.
+- **Frontend `api.ts`**: `RatingView`, `PaymentTransaction` types; `getRating`, `submitRating`, `triggerSos`, `reportIncident`, `getPayments`, `acknowledgePayment` functions; `createRide` extended with optional `scheduledFor`; `Ride` type gains `scheduledFor`.
+- **`RatingModal`**: star picker + optional comment; appears in `RideStatusView` when COMPLETED and no prior rating (404 probe). "Thank you for your rating!" on success.
+- **`SafetyControls`**: SOS confirm flow + incident report form; visible in `RideStatusView` when ARRIVED or IN_PROGRESS.
+- **`RideReceipt`**: fetches RIDE_FARE transaction; shows "Mark as paid" button (PENDING → COLLECTED) or "✓ Cash paid".
+- **`BookingFlow`**: "Schedule for later" checkbox + datetime-local input; passes ISO `scheduledFor` to `createRide`.
+- **`RideProgressStepper`**: SCHEDULED prepended as first step. `RideStatusView` gains SCHEDULED headline.
+- **1 new backend test** (176 total): `PaymentAutoPostTest` — verifies auto-post of payment + ledger after `markCompleted()`.
+- **10 new frontend tests** (50 total): `RatingModal` (4), `SafetyControls` (4), `ScheduledBooking` (2).
+
 ### Added — 2026-06-21 — Rating + safety modules (Phase 10 / Phase 3)
 
 - **Flyway V11** (`V11__ride_ratings.sql`): `ride_ratings` table with ride_id/driver_id/rater_rider_id FKs,

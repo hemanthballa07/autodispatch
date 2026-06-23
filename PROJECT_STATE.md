@@ -2,7 +2,20 @@
 
 ## Current phase
 
-**Phase 10 — Phase 3 complete. Rating + safety modules (V11 + V12). 175 backend tests green. ArchUnit green. Ready for deploy or further features.**
+**Phase 11 complete. UI integration + payment auto-flow. 176 backend tests green. 50 frontend tests green. ArchUnit green. Next: deploy or Phase 12.**
+
+Phase 11 added:
+- `dispatch.api.RideCompletedEvent` record; `Ride.lockFinalAmount()`; `DispatchService.markCompleted()` now locks final amount and publishes event via `ApplicationEventPublisher`.
+- `PaymentEventListener` (`@TransactionalEventListener(AFTER_COMMIT)` + `REQUIRES_NEW`) auto-posts RIDE_FARE payment transaction and driver ledger credit on every ride completion.
+- `RideView` gains `scheduledFor` (12th component); propagated through `RideBookingService.toView()` and `RideController.RideResponse` to the HTTP JSON response.
+- Frontend `api.ts`: `RatingView`, `PaymentTransaction` types; 6 new API functions (`getRating`, `submitRating`, `triggerSos`, `reportIncident`, `getPayments`, `acknowledgePayment`); `createRide` extended with optional `scheduledFor`; `Ride` type gains `scheduledFor`.
+- `RatingModal`: 5-star picker + optional comment; appears in `RideStatusView` when ride COMPLETED and no prior rating (404 probe). Thank-you confirmation on success.
+- `SafetyControls`: SOS (confirm → "help is on the way") + incident report form; visible when ride ARRIVED or IN_PROGRESS.
+- `RideReceipt`: fetches RIDE_FARE transaction on load; shows pending amount + "Mark as paid" (PENDING→COLLECTED) or "✓ Cash paid" (COLLECTED).
+- `BookingFlow`: "Schedule for later" checkbox + datetime-local input (min now+10min); passes ISO scheduledFor to createRide.
+- `RideProgressStepper`: SCHEDULED prepended as first step. `RideStatusView` gains SCHEDULED headline.
+- 1 new backend test (176 total): `PaymentAutoPostTest` — full-stack `@SpringBootTest` + SQL fixtures.
+- 10 new frontend tests (50 total): `RatingModal` (4), `SafetyControls` (4), `ScheduledBooking` (2).
 
 Phase 10 / Phase 3 added:
 - Flyway V11: `ride_ratings` table (id, ride_id FK, driver_id FK, rater_rider_id FK, driver_stars INTEGER CHECK 1-5, comment VARCHAR(500) NULL, created_at); UNIQUE(ride_id, rater_rider_id); indexes on ride_id + driver_id.
