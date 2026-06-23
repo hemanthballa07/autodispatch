@@ -100,3 +100,12 @@ export const submitRating = (rideId: string, stars: number, comment?: string) =>
     `/api/v1/rides/${rideId}/rating?stars=${stars}${comment ? `&comment=${encodeURIComponent(comment)}` : ""}`,
     { method: "POST" },
   );
+
+export const triggerSos = (rideId: string) =>
+  request<void>(`/api/v1/rides/${rideId}/safety/sos`, { method: "POST" });
+
+export const reportIncident = (rideId: string, details: string) =>
+  request<void>(
+    `/api/v1/rides/${rideId}/safety/incident?details=${encodeURIComponent(details)}`,
+    { method: "POST" },
+  );

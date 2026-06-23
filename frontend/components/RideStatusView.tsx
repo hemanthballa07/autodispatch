@@ -7,6 +7,7 @@ import RideProgressStepper from "./RideProgressStepper";
 import DriverCard from "./DriverCard";
 import RideReceipt from "./RideReceipt";
 import RatingModal from "./RatingModal";
+import SafetyControls from "./SafetyControls";
 import { Button } from "@/components/ui/button";
 
 const HEADLINES: Record<string, string> = {
@@ -86,6 +87,10 @@ export default function RideStatusView({
         <div className="animate-in fade-in duration-300">
           <DriverCard driver={ride.driver} />
         </div>
+      )}
+
+      {(ride.status === "ARRIVED" || ride.status === "IN_PROGRESS") && (
+        <SafetyControls rideId={ride.id} />
       )}
 
       {ride.cancellable && onCancel && (
