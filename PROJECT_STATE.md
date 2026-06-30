@@ -2,7 +2,30 @@
 
 ## Current phase
 
-**Phase 11 complete. UI integration + payment auto-flow. 176 backend tests green. 50 frontend tests green. ArchUnit green. Next: deploy or Phase 12.**
+**Phase 12 in progress. Deployment artifacts complete. 178 backend tests green. Manual deploy steps (Railway + Vercel + optional WhatsApp LIVE) remaining.**
+
+Phase 12 added (code-complete, committed 2026-06-23):
+- WireMock-based integration tests for `WhatsAppCloudApiGateway` (sendRideOffer payload + E.164 stripping). 178 backend tests green.
+- Dockerfile (multi-stage jdk-alpine → jre-alpine), `.dockerignore`, `docker-compose.prod.yml`.
+- `railway.toml` (Dockerfile builder, liveness healthcheck).
+- `frontend/vercel.json` (Next.js framework hint).
+- `application-prod.yml` (`POSTGRES_*` / `REDIS_*` env-var bindings; JSON logging on prod profile).
+- `WebCorsConfig` (`AUTODISPATCH_CORS_ALLOWED_ORIGINS` env var).
+
+**To deploy (manual steps — run in this order):**
+1. Push to `main` → Railway auto-deploys (native GitHub integration at `hemanthballa07/autodispatch`).
+2. Railway: Add Plugin → PostgreSQL, Add Plugin → Redis.
+3. Railway backend service → Variables → add 13 vars (see plan `rustling-wishing-pinwheel.md`).
+   - `POSTGRES_HOST` = `${{Postgres.PGHOST}}` (and PORT, DB, USER, PASSWORD similarly)
+   - `REDIS_HOST` = `${{Redis.REDISHOST}}` (and PORT, PASSWORD)
+   - `JWT_SECRET` / `ADMIN_API_KEY` / `WHATSAPP_VERIFY_TOKEN` — generate with `openssl rand -hex 32/16/16`
+   - `WHATSAPP_MODE` = `STUB` initially; `AUTODISPATCH_CORS_ALLOWED_ORIGINS` = `http://localhost:3000` placeholder
+4. Verify: `curl https://<railway-url>/actuator/health/liveness` → `{"status":"UP"}`
+5. Vercel: New Project → Import `hemanthballa07/autodispatch` → **Root Directory: `frontend`** → add `NEXT_PUBLIC_API_BASE=https://<railway-url>` for Production.
+6. Update Railway: `AUTODISPATCH_CORS_ALLOWED_ORIGINS=https://<vercel-app>.vercel.app`
+7. (Optional) WhatsApp LIVE: set `WHATSAPP_MODE=LIVE` + `WHATSAPP_ACCESS_TOKEN` + `WHATSAPP_APP_SECRET` + `WHATSAPP_PHONE_NUMBER_ID` in Railway; register webhook at `https://<railway-url>/webhooks/whatsapp`.
+
+**Phase 11 complete. UI integration + payment auto-flow. 176 backend tests green (178 after Phase 12 WireMock tests). 50 frontend tests green. ArchUnit green.**
 
 Phase 11 added:
 - `dispatch.api.RideCompletedEvent` record; `Ride.lockFinalAmount()`; `DispatchService.markCompleted()` now locks final amount and publishes event via `ApplicationEventPublisher`.

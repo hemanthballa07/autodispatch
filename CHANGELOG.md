@@ -5,6 +5,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — 2026-06-30 — Deployment artifacts + WhatsApp LIVE gateway (Phase 12)
+
+- **WireMock tests** (`WhatsAppCloudApiGatewayTest`): covers `sendRideOffer` serialised payload shape and E.164 phone-number stripping; **178 backend tests green**.
+- **Dockerfile** (multi-stage `jdk-alpine` build → `jre-alpine` runtime); `.dockerignore`; `docker-compose.prod.yml` for local prod smoke-test.
+- **`railway.toml`**: Dockerfile builder, healthcheck path `/actuator/health/liveness`.
+- **`frontend/vercel.json`**: Next.js framework hint.
+- **`application-prod.yml`**: `POSTGRES_*` / `REDIS_*` env-var bindings for Railway; JSON logging on `prod` profile.
+- **`WebCorsConfig`**: `AUTODISPATCH_CORS_ALLOWED_ORIGINS` env var wires Vercel origin into CORS allowlist.
+- **GitHub remote**: `https://github.com/hemanthballa07/autodispatch.git`; Railway + Vercel both pull from this repo.
+- **Manual deploy steps** (Tasks 2–5): Railway Postgres + Redis plugins, 13 env vars, Vercel project (root dir `frontend`), CORS wiring, optional WhatsApp LIVE activation — see `PROJECT_STATE.md` for the runbook.
+
 ### Added — 2026-06-23 — UI integration + payment auto-flow (Phase 11)
 
 - **`dispatch.api.RideCompletedEvent`**: new Spring application event published after `DispatchService.markCompleted()` commits.
