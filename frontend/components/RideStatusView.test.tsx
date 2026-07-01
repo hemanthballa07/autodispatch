@@ -72,4 +72,14 @@ describe("RideStatusView", () => {
     rerender(<RideStatusView ride={ride({ status: "CANCELLED", cancelReason: "Cancelled by rider" })} />);
     expect(screen.getByRole("status")).toHaveTextContent("Cancelled by rider");
   });
+
+  it("shows the reconnecting banner when isReconnecting is true", () => {
+    render(<RideStatusView ride={ride({ status: "BROADCASTING" })} isReconnecting={true} />);
+    expect(screen.getByRole("status")).toHaveTextContent("Reconnecting");
+  });
+
+  it("hides the reconnecting banner by default", () => {
+    render(<RideStatusView ride={ride({ status: "BROADCASTING" })} />);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
 });

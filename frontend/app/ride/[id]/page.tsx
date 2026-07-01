@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import RideStatusView from "@/components/RideStatusView";
@@ -14,12 +14,22 @@ export default function RideStatusPage() {
   const [ride, setRide] = useState<Ride | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const hasRideRef = useRef(false);
 
   const refresh = useCallback(async () => {
     try {
-      setRide(await getRide(rideId));
+      const fresh = await getRide(rideId);
+      setRide(fresh);
+      setIsReconnecting(false);
+      setError(null);
+      hasRideRef.current = true;
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not load ride.");
+      if (hasRideRef.current) {
+        setIsReconnecting(true);
+      } else {
+        setError(e instanceof ApiError ? e.message : "Could not load ride.");
+      }
     }
   }, [rideId]);
 
@@ -48,7 +58,7 @@ export default function RideStatusPage() {
   return (
     <main style={{ padding: "1.5rem", maxWidth: 480, margin: "0 auto" }}>
       {error && <p role="alert">{error}</p>}
-      {ride ? <RideStatusView ride={ride} onCancel={onCancel} cancelling={cancelling} /> : <p>Loading…</p>}
+      {ride ? <RideStatusView ride={ride} onCancel={onCancel} cancelling={cancelling} isReconnecting={isReconnecting} /> : <p>Loading…</p>}
       {ride && TERMINAL_STATES.includes(ride.status) && (
         <p>
           <Link href="/book">Book another ride</Link>

@@ -28,10 +28,12 @@ export default function RideStatusView({
   ride,
   onCancel,
   cancelling = false,
+  isReconnecting = false,
 }: {
   ride: Ride;
   onCancel?: () => void;
   cancelling?: boolean;
+  isReconnecting?: boolean;
 }) {
   const isTerminal = TERMINAL_STATES.includes(ride.status);
 
@@ -51,6 +53,17 @@ export default function RideStatusView({
       aria-label="Ride status"
       className="mx-auto flex w-full max-w-md flex-col gap-5 px-4 py-6"
     >
+      {isReconnecting && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center gap-1.5 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700"
+        >
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+          Reconnecting…
+        </div>
+      )}
+
       <h2 className="text-xl font-bold text-foreground">{HEADLINES[ride.status] ?? ride.status}</h2>
 
       <p className="text-sm text-muted-foreground">

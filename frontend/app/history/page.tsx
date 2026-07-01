@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ApiError, getToken, listRides, type Ride } from "@/lib/api";
+
+const HISTORY_CACHE_KEY = "autodispatch_history_cache";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/StatusBadge";
@@ -11,6 +13,21 @@ export default function HistoryPage() {
   const [rides, setRides] = useState<Ride[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [stale, setStale] = useState(false);
+  const hasCacheRef = useRef(false);
+
+  // Mount-only: seed UI from localStorage before the first network fetch lands.
+  useEffect(() => {
+    if (!getToken()) return;
+    try {
+      const raw = localStorage.getItem(HISTORY_CACHE_KEY);
+      if (raw) {
+        setRides(JSON.parse(raw) as Ride[]);
+        setStale(true);
+        hasCacheRef.current = true;
+      }
+    } catch { /* corrupted data — ignore, fresh fetch will overwrite */ }
+  }, []);
 
   useEffect(() => {
     if (!getToken()) {
@@ -18,15 +35,34 @@ export default function HistoryPage() {
       setRides([]);
       return;
     }
-    setRides(null);
+    setError(null);
+    // Don't flash spinner when we already have stale cache data for page 0.
+    if (page !== 0 || !hasCacheRef.current) setRides(null);
     listRides(page)
-      .then(setRides)
-      .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load history."));
+      .then((data) => {
+        setRides(data);
+        setStale(false);
+        hasCacheRef.current = false;
+        if (page === 0) {
+          try { localStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(data)); } catch { /* quota */ }
+        }
+      })
+      .catch((e) => {
+        setError(e instanceof ApiError ? e.message : "Could not load history.");
+        // Keep stale rides visible — do not null them out on network failure.
+      });
   }, [page]);
 
   return (
     <main className="mx-auto max-w-md px-4 py-6">
-      <h1 className="mb-6 text-2xl font-bold text-foreground">Your rides</h1>
+      <div className="mb-6 flex items-center gap-3">
+        <h1 className="text-2xl font-bold text-foreground">Your rides</h1>
+        {stale && (
+          <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+            Cached — connect to refresh
+          </span>
+        )}
+      </div>
 
       {error && (
         <p role="alert" className="mb-4 text-sm text-red-600">
