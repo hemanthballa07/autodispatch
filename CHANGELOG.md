@@ -5,6 +5,39 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed — 2026-07-01 — Test suite no longer depends on docker-compose
+
+- **`PaymentAutoPostTest`**: was the only integration test using plain `@SpringBootTest` without
+  `@Import(TestcontainersConfiguration.class)`, so it connected to the docker-compose Postgres at
+  `localhost:5432` and failed whenever the compose stack wasn't running. Added the Testcontainers import;
+  kept it non-`@Transactional` (its assertions depend on the `PaymentEventListener`'s
+  `@TransactionalEventListener(AFTER_COMMIT)` actually committing) and its `@Sql` setup/teardown scripts.
+- **`DefaultDriverAvailabilityServiceTest`** (12 tests, new): normal-path coverage of `goOnline` / `goOffline`
+  / `recordInbound` / `tryMarkOnRide` / `makeAvailable`, and `drivers:available` Redis-set membership
+  semantics (DB-wins repair of stale/missing mirror entries, verified/suspended exclusion). Deliberately not
+  `@Transactional` — several `DriverRepository` native `@Modifying` updates lack `clearAutomatically`, so a
+  shared test transaction reads stale JPA-cached entities after those writes (same reason
+  `AdminApiIntegrationTest` and `DriverMarkOnRideConcurrencyTest` avoid it). The `markOnRide` concurrency race
+  itself stays covered by `DriverMarkOnRideConcurrencyTest`.
+- `DefaultDriverAdminService` (register/verify/suspend/unsuspend, `DriverAlreadyExistsException`,
+  `DriverOnRideException`) was found already fully exercised by `AdminApiIntegrationTest` — no duplicate
+  tests added.
+- **207 backend tests green** (was 195), verified with `docker compose down` — `./gradlew test` is now fully
+  self-sufficient via Testcontainers.
+
+### Added — 2026-07-01 — Fare + vehicle-type test coverage
+
+- **`FareServiceTest`** (13 tests, `@SpringBootTest` + Testcontainers + `@Transactional`): first dedicated
+  coverage of the fare module. Exercises every `DefaultFareService.estimate()` branch — active zone-pair
+  quote, unknown pickup/drop, inactive pickup/drop, missing fare rule for a zone pair, matching vs. unknown
+  `vehicleTypeId`, and the 2-arg overload — plus `LocationCatalog.activeLocations()` (inactive exclusion +
+  name ordering) and `findById()` (present / unknown / returns inactive).
+- **`VehicleTypeControllerTest`** (4 tests, MockMvc): `GET /api/v1/vehicle-types` requires a session token
+  (401 without), returns the seeded "Auto" type with id+name, excludes inactive types, and orders by name asc.
+- **195 backend tests green** (was 178).
+- Notification webhook was already covered (`WhatsAppWebhookSecurityTest`, `WhatsAppWebhookIdempotencyTest`),
+  so no duplicate tests were added there.
+
 ### Added — 2026-06-30 — Deployment artifacts + WhatsApp LIVE gateway (Phase 12)
 
 - **WireMock tests** (`WhatsAppCloudApiGatewayTest`): covers `sendRideOffer` serialised payload shape and E.164 phone-number stripping; **178 backend tests green**.

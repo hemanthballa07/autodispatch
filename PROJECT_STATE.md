@@ -2,7 +2,24 @@
 
 ## Current phase
 
-**Phase 12 in progress. Deployment artifacts complete. 178 backend tests green. Manual deploy steps (Railway + Vercel + optional WhatsApp LIVE) remaining.**
+**Phase 12 in progress. Deployment artifacts complete. 207 backend tests green, fully self-contained via Testcontainers (no docker-compose dependency remains — verified with `docker compose down`). Manual deploy steps (Railway + Vercel + optional WhatsApp LIVE) remaining.**
+
+Test suite self-containment fix (2026-07-01, +12 backend tests → 207):
+- `PaymentAutoPostTest` was the only test using plain `@SpringBootTest` without
+  `@Import(TestcontainersConfiguration.class)`, so it silently depended on the docker-compose Postgres at
+  localhost:5432. Fixed by adding the Testcontainers import (kept non-`@Transactional` since its assertions
+  depend on the `AFTER_COMMIT` payment listener actually committing).
+- `driver/internal/DefaultDriverAvailabilityServiceTest` (12) — normal-path `goOnline`/`goOffline`/
+  `recordInbound`/`tryMarkOnRide`/`makeAvailable` state transitions + `drivers:available` Redis mirror
+  repair/exclusion semantics. Not `@Transactional` (native `@Modifying` updates without
+  `clearAutomatically` would leave a shared test transaction reading stale JPA-cached entities). The
+  `markOnRide` race stays covered by `DriverMarkOnRideConcurrencyTest`.
+- `DefaultDriverAdminService` was found already fully covered by `AdminApiIntegrationTest` — no new tests.
+
+Test-gap backfill (2026-07-01, +17 backend tests → 195):
+- `fare/internal/FareServiceTest` (13) — first dedicated fare-module coverage: all `estimate()` branches + `LocationCatalog`.
+- `driver/internal/VehicleTypeControllerTest` (4) — `GET /api/v1/vehicle-types` auth/shape/inactive-exclusion/ordering.
+- Notification webhook already covered (`WhatsAppWebhookSecurityTest`, `WhatsAppWebhookIdempotencyTest`) — no duplication needed.
 
 Phase 12 added (code-complete, committed 2026-06-23):
 - WireMock-based integration tests for `WhatsAppCloudApiGateway` (sendRideOffer payload + E.164 stripping). 178 backend tests green.
